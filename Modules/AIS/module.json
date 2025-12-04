@@ -1,0 +1,11 @@
+{
+    "name": "AIS",
+    "alias": "ais",
+    "description": "",
+    "keywords": [],
+    "priority": 0,
+    "providers": [
+        "Modules\\AIS\\Providers\\AISServiceProvider"
+    ],
+    "files": []
+}

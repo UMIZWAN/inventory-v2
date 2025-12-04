@@ -1,0 +1,11 @@
+{
+    "name": "MIS",
+    "alias": "mis",
+    "description": "",
+    "keywords": [],
+    "priority": 0,
+    "providers": [
+        "Modules\\MIS\\Providers\\MISServiceProvider"
+    ],
+    "files": []
+}

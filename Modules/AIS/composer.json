@@ -1,0 +1,30 @@
+{
+    "name": "nwidart/ais",
+    "description": "",
+    "authors": [
+        {
+            "name": "Nicolas Widart",
+            "email": "n.widart@gmail.com"
+        }
+    ],
+    "extra": {
+        "laravel": {
+            "providers": [],
+            "aliases": {
+
+            }
+        }
+    },
+    "autoload": {
+        "psr-4": {
+            "Modules\\AIS\\": "app/",
+            "Modules\\AIS\\Database\\Factories\\": "database/factories/",
+            "Modules\\AIS\\Database\\Seeders\\": "database/seeders/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Modules\\AIS\\Tests\\": "tests/"
+        }
+    }
+}
