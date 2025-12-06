@@ -54,10 +54,10 @@ return new class extends Migration
             $table->timestamps();
         });
 
-        Schema::create('s_company', function (Blueprint $table) {
+        Schema::create('s_group', function (Blueprint $table) {
             $table->id();
             $table->string('name');
-
+            $table->string('is_active')->nullable();
             $table->timestamps();
         });
 
@@ -70,19 +70,33 @@ return new class extends Migration
         Schema::create('s_branch', function (Blueprint $table) {
             $table->id();
             $table->string('name');
-            $table->foreignId('s_company_id')->nullable()->constrained('s_company')->cascadeOnDelete();
+            $table->foreignId('s_group_id')->nullable()->constrained('s_group')->cascadeOnDelete();
             $table->string('is_active')->nullable();
             $table->timestamps();
         });
 
         Schema::table('users', function (Blueprint $table) {
-            $table->string('username')->unique()->nullable();
-            $table->unsignedBigInteger('s_accessLevel_id')->nullable();
+            $table->string('username')->unique()->nullable()->after('email_verified_at');
+            $table->unsignedBigInteger('s_accessLevel_id')->nullable()->after('remember_token');
+            $table->unsignedBigInteger('s_group_id')->nullable()->after('s_accessLevel_id');
             $table->foreign('s_accessLevel_id')
                 ->references('id')
                 ->on('s_accessLevel')
                 ->cascadeOnDelete();
+            $table->foreign('s_group_id')
+                ->references('id')
+                ->on('s_group')
+                ->cascadeOnDelete();
         });
+
+        Schema::create('user_branch', function (Blueprint $table) {
+            $table->id();
+            $table->foreignId('user_id')->nullable()->constrained('users')->cascadeOnDelete();
+            $table->foreignId('branch_id')->nullable()->constrained('s_branch')->cascadeOnDelete();
+            $table->string('is_primary')->nullable();
+            $table->timestamps();
+        });
+
 
         Schema::create('s_tags', function (Blueprint $table) {
             $table->id();
@@ -119,6 +133,8 @@ return new class extends Migration
             $table->id();
             $table->string('name')->nullable();
             $table->string('running_number');
+            $table->string('is_assset')->nullable();
+            $table->foreignId('s_group_id')->nullable()->constrained('s_group')->cascadeOnDelete();
             $table->text('description')->nullable();
             $table->foreignId('s_type_id')->nullable()->constrained('s_types')->cascadeOnDelete();
             $table->foreignId('s_size_id')->nullable()->constrained('s_sizes')->cascadeOnDelete();
@@ -167,11 +183,42 @@ return new class extends Migration
             $table->timestamps();
         });
 
+        Schema::create('purchase_orders', function (Blueprint $table) {
+            $table->id();
+            $table->string('po_number')->unique();
+            $table->foreignId('supplier_id')->nullable()->constrained('suppliers')->nullOnDelete();
+
+            $table->enum('po_status', ['REQUESTED', 'APPROVED', 'REJECTED', 'COMPLETED'])->default('REQUESTED');
+
+            $table->decimal('po_total_cost', 12, 2)->nullable();
+            $table->text('remark')->nullable();
+
+            // Trackers
+            $table->foreignId('created_by')->nullable()->constrained('users')->nullOnDelete();
+            $table->foreignId('approved_by')->nullable()->constrained('users')->nullOnDelete();
+            $table->foreignId('rejected_by')->nullable()->constrained('users')->nullOnDelete();
+            $table->timestamps();
+        });
+
+
+        Schema::create('purchase_order_items', function (Blueprint $table) {
+            $table->id();
+            $table->foreignId('purchase_order_id')->constrained('purchase_orders')->cascadeOnDelete();
+            $table->foreignId('item_id')->constrained('items')->cascadeOnDelete();
+            $table->integer('qty_ordered');
+            $table->integer('qty_received')->default(0);
+            $table->integer('qty_remaining')->virtualAs('qty_ordered - qty_received');
+            $table->decimal('unit_cost', 12, 4)->nullable();
+            $table->decimal('total_cost', 12, 4)->nullable();
+            $table->timestamps();
+        });
+
+
         Schema::create('transactions', function (Blueprint $table) {
             $table->id();
             $table->string('transaction_running_number')->unique();
             $table->foreignId('supplier_id')->nullable()->constrained('suppliers')->cascadeOnDelete();
-
+            $table->foreignId('purchase_order_id')->nullable()->constrained('purchase_orders')->nullOnDelete();
             $table->enum('transaction_type', ['IN', 'OUT', 'TRANSFER']);
             $table->string('in_recipient_name')->nullable();
             $table->string('out_recipient_name')->nullable();
@@ -227,6 +274,8 @@ return new class extends Migration
     {
         Schema::dropIfExists('transaction_item_list');
         Schema::dropIfExists('transactions');
+        Schema::dropIfExists('purchase_order_items');
+        Schema::dropIfExists('purchase_orders');
         Schema::dropIfExists('transaction_purpose');
         Schema::dropIfExists('shipping_option');
         Schema::dropIfExists('suppliers');
@@ -236,6 +285,7 @@ return new class extends Migration
         Schema::dropIfExists('s_sizes');
         Schema::dropIfExists('s_types');
         Schema::dropIfExists('s_tags');
+        Schema::dropIfExists('user_branch');
 
         Schema::table('users', function (Blueprint $table) {
             $table->dropForeign(['s_accessLevel_id']);
@@ -245,7 +295,7 @@ return new class extends Migration
 
         Schema::dropIfExists('s_branch');
         Schema::dropIfExists('s_tax');
-        Schema::dropIfExists('s_company');
+        Schema::dropIfExists('s_group');
         Schema::dropIfExists('s_logs');
         Schema::dropIfExists('s_accessLevel');
     }
